@@ -1,0 +1,38 @@
+============================================================
+GENETIC ALGORITHM FOR CONSTRAINED OPTIMIZATION
+GA-TDX-INSPIRED IMPLEMENTATION
+============================================================
+Enter the number of variables: 2
+Enter objective function (example: x1**2 + x2**2): x1*x2
+Enter optimization type (min/max): min
+
+Enter the bounds for each variable.
+Lower bound for x1: -0.000001
+Upper bound for x1: 8
+Lower bound for x2: -0.000001
+Upper bound for x2: 8
+
+Enter number of inequality constraints: 1
+
+Enter each constraint in the form g(x) <= 0.
+Example: x1 + x2 - 5
+Constraint 1: x1>0
+
+Enter population size (minimum 4): 8
+Enter number of generations: 100
+Enter static penalty coefficient (example: 1000): 1000
+
+============================================================
+OPTIMIZATION RESULTS
+============================================================
+Optimization type: MIN
+x1 = -0.000001
+x2 = 8.000000
+
+Objective function value = -0.000008
+Penalized objective value = -0.000008
+
+Constraint results:
+g1(x) = 0.000000 -> SATISFIED
+
+Feasible solution: YES
