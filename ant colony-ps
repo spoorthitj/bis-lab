@@ -1,0 +1,23 @@
+Enhanced Ant Colony Optimization with Dynamic Ant Population and Pheromone Boosting for Mobile Parcel Delivery Route Optimization
+
+Authors:
+- M. Sholeh
+- G. E. Girsang
+- R. B. M. Ghifari
+- H. I. Fathoni
+- H. Tolle
+- A. Pinandito
+Publication: IEEE Asia Pacific Conference on Wireless and Mobile (APWiMob), 2025, pages 126–132.
+
+DOI: 10.1109/APWiMob67231.2025.11269151
+
+Paper link: Research paper details and DOI
+
+2. Problem statement extracted from the research
+Traditional Ant Colony Optimization algorithms can suffer from premature convergence when solving complex delivery-routing problems.
+
+This means that ants may repeatedly select similar routes before discovering the best possible route. As a result, the algorithm can get stuck with a suboptimal solution.
+
+The research addresses this problem by proposing two improvements:
+1. Dynamic Ant Population: Adjust the number of ants according to the complexity of the search.
+2. Pheromone Boosting: Strengthen pheromone updates using multiple high-quality solutions to improve exploration and prevent premature convergence.
