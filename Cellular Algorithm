@@ -1,0 +1,58 @@
+"""
+Simple Cellular Algorithm application: where to place ONE Wi-Fi router
+so that the total distance to all houses is smallest.
+
+- Each CELL on a grid holds one guess: a router position (x, y)
+- Fitness = total distance from that position to all houses (lower = better)
+- Each cell only looks at its 4 neighbors (up, down, left, right)
+Requires: numpy, matplotlib
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(3)
+
+# 1. The problem: 15 houses at random places on a 100 x 100 map
+houses = np.random.rand(15, 2) * 100
+
+def fitness(pos):
+    return np.sum(np.linalg.norm(houses - pos, axis=1))   # total distance
+
+# 2. Parameters: 6 x 6 grid of cells, 40 rounds
+ROWS, COLS, ROUNDS = 6, 6, 40
+
+# 3. Every cell starts with a random guess
+grid = np.random.rand(ROWS, COLS, 2) * 100
+score = np.array([[fitness(grid[i, j]) for j in range(COLS)] for i in range(ROWS)])
+print(f"Start: best total distance = {score.min():.1f}")
+
+# 4-6. Each round, every cell learns ONLY from its neighbors
+for r in range(ROUNDS):
+    new_grid, new_score = grid.copy(), score.copy()
+    for i in range(ROWS):
+        for j in range(COLS):
+            # neighbors (grid wraps around at the edges)
+            nbrs = [((i - 1) % ROWS, j), ((i + 1) % ROWS, j),
+                    (i, (j - 1) % COLS), (i, (j + 1) % COLS)]
+            bi, bj = min(nbrs, key=lambda p: score[p])          # best neighbor
+            # new guess = halfway between me and my best neighbor + small random nudge
+            guess = (grid[i, j] + grid[bi, bj]) / 2 + np.random.randn(2) * 2
+            s = fitness(guess)
+            if s < score[i, j]:                                 # keep only if better
+                new_grid[i, j], new_score[i, j] = guess, s
+    grid, score = new_grid, new_score
+    if (r + 1) % 10 == 0:
+        print(f"Round {r + 1:2d}: best total distance = {score.min():.1f}")
+
+# 7. Best answer
+bi, bj = np.unravel_index(score.argmin(), score.shape)
+best = grid[bi, bj]
+print(f"\nBest router position: x = {best[0]:.1f}, y = {best[1]:.1f}")
+
+plt.figure(figsize=(6, 6))
+plt.scatter(houses[:, 0], houses[:, 1], c="gray", s=60, label="houses")
+plt.scatter(grid[:, :, 0], grid[:, :, 1], c="tab:blue", s=25, label="cells' guesses")
+plt.scatter(*best, c="red", marker="*", s=300, label="best router spot")
+plt.legend(); plt.title("Cellular algorithm: placing a Wi-Fi router")
+plt.savefig("cellular_wifi_result.png", dpi=120, bbox_inches="tight")
+print("Saved: cellular_wifi_result.png")

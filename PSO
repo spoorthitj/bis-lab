@@ -1,0 +1,108 @@
+"""
+PSO for Image Segmentation (K-means style clustering)
+-----------------------------------------------------
+Each PARTICLE (bird) = one complete guess of K cluster centers (colors).
+The PIXELS never move; they are only used to score each guess.
+
+Requires: numpy, matplotlib   (Pillow only if you use your own image)
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
+
+# ------------------------------------------------------------------
+# 1. Get an image (synthetic by default, or load your own)
+# ------------------------------------------------------------------
+IMAGE_PATH = None        # e.g. "photo.jpg" to use your own image
+
+def make_synthetic_image(size=120):
+    img = np.zeros((size, size, 3), dtype=float)
+    img[: size // 2] = [100, 150, 230]            # sky (blue)
+    img[size // 2:] = [60, 170, 70]               # grass (green)
+    yy, xx = np.ogrid[:size, :size]
+    circle = (yy - 60) ** 2 + (xx - 60) ** 2 < 25 ** 2
+    img[circle] = [220, 60, 50]                   # red object
+    img += np.random.normal(0, 12, img.shape)     # noise
+    return np.clip(img, 0, 255)
+
+if IMAGE_PATH:
+    from PIL import Image
+    img = np.asarray(Image.open(IMAGE_PATH).convert("RGB").resize((120, 120)), dtype=float)
+else:
+    img = make_synthetic_image()
+
+pixels = img.reshape(-1, 3)                       # fixed data: N pixels x 3 (R,G,B)
+
+# ------------------------------------------------------------------
+# 2. Parameters
+# ------------------------------------------------------------------
+K = 3                                             # number of clusters
+N_PARTICLES = 20
+W, C1, C2 = 0.7, 1.5, 1.5                         # inertia, cognitive, social
+ITERATIONS = 60
+DIM = K * 3                                       # one particle = K centers x (R,G,B)
+LOW, HIGH = 0.0, 255.0
+
+# ------------------------------------------------------------------
+# 3. Fitness: how tightly pixels group around the particle's centers
+#    (lower = better)
+# ------------------------------------------------------------------
+def fitness(particle):
+    centers = particle.reshape(K, 3)
+    # distance from every pixel to every center -> pick the nearest
+    d = np.linalg.norm(pixels[:, None, :] - centers[None, :, :], axis=2)
+    return np.mean(np.min(d, axis=1) ** 2)
+
+# ------------------------------------------------------------------
+# 4. PSO
+# ------------------------------------------------------------------
+pos = np.random.uniform(LOW, HIGH, (N_PARTICLES, DIM))
+vel = np.random.uniform(-10, 10, (N_PARTICLES, DIM))
+
+pbest = pos.copy()
+pbest_val = np.array([fitness(p) for p in pos])
+g_idx = pbest_val.argmin()
+gbest, gbest_val = pbest[g_idx].copy(), pbest_val[g_idx]
+
+history = [gbest_val]
+for it in range(ITERATIONS):
+    r1 = np.random.rand(N_PARTICLES, DIM)
+    r2 = np.random.rand(N_PARTICLES, DIM)
+
+    vel = W * vel + C1 * r1 * (pbest - pos) + C2 * r2 * (gbest - pos)
+    pos = np.clip(pos + vel, LOW, HIGH)
+
+    for i in range(N_PARTICLES):
+        val = fitness(pos[i])
+        if val < pbest_val[i]:
+            pbest_val[i], pbest[i] = val, pos[i].copy()
+            if val < gbest_val:
+                gbest_val, gbest = val, pos[i].copy()
+
+    history.append(gbest_val)
+    if (it + 1) % 10 == 0:
+        print(f"Iter {it + 1:3d} | best fitness = {gbest_val:8.2f}")
+
+# ------------------------------------------------------------------
+# 5. Output: best centers and the segmented image
+# ------------------------------------------------------------------
+centers = gbest.reshape(K, 3)
+print("\nBest cluster centers (R, G, B):")
+for c in centers:
+    print("  ", np.round(c).astype(int))
+
+d = np.linalg.norm(pixels[:, None, :] - centers[None, :, :], axis=2)
+labels = d.argmin(axis=1)
+segmented = centers[labels].reshape(img.shape)    # paint each pixel with its center color
+
+fig, ax = plt.subplots(1, 3, figsize=(13, 4))
+ax[0].imshow(img.astype(np.uint8));       ax[0].set_title("Original (noisy)")
+ax[1].imshow(segmented.astype(np.uint8)); ax[1].set_title(f"PSO segmentation (K={K})")
+ax[2].plot(history);                      ax[2].set_title("Fitness vs iteration")
+ax[2].set_xlabel("Iteration");            ax[2].set_ylabel("Best fitness (lower = better)")
+for a in ax[:2]:
+    a.axis("off")
+plt.tight_layout()
+plt.savefig("pso_segmentation_result.png", dpi=120)
+print("\nSaved: pso_segmentation_result.png")

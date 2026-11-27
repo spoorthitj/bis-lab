@@ -1,0 +1,61 @@
+# Simple Ant Colony Optimization for shortest route (TSP) - pure Python, no libraries needed
+import random
+import math
+
+random.seed(1)
+
+# 1. Cities (x, y)
+cities = [(0, 0), (2, 6), (5, 2), (6, 7), (8, 3), (9, 9), (3, 9), (7, 0)]
+n = len(cities)
+
+def distance(a, b):
+    return math.dist(cities[a], cities[b])
+
+# 2. Parameters
+ANTS = 10
+ALPHA = 1        # importance of pheromone
+BETA = 3         # importance of closeness
+RHO = 0.5        # evaporation rate
+Q = 100          # pheromone strength
+ITERATIONS = 50
+
+pheromone = [[1.0] * n for _ in range(n)]     # same small amount on every road
+
+def route_length(route):
+    return sum(distance(route[i], route[(i + 1) % n]) for i in range(n))
+
+# 3. One ant builds a route
+def build_route():
+    route = [random.randrange(n)]
+    while len(route) < n:
+        here = route[-1]
+        options = [c for c in range(n) if c not in route]
+        # attractiveness = pheromone^alpha * (1/distance)^beta
+        scores = [(pheromone[here][c] ** ALPHA) * ((1 / distance(here, c)) ** BETA)
+                  for c in options]
+        route.append(random.choices(options, weights=scores)[0])
+    return route
+
+best_route, best_len = None, float("inf")
+
+for it in range(ITERATIONS):
+    routes = [build_route() for _ in range(ANTS)]
+
+    # 4. Evaporate, then let each ant drop pheromone (shorter route = more)
+    for i in range(n):
+        for j in range(n):
+            pheromone[i][j] *= (1 - RHO)
+    for route in routes:
+        length = route_length(route)
+        for i in range(n):
+            a, b = route[i], route[(i + 1) % n]
+            pheromone[a][b] += Q / length
+            pheromone[b][a] += Q / length
+        if length < best_len:                  # 6. remember the best
+            best_route, best_len = route, length
+
+    if (it + 1) % 10 == 0:
+        print(f"Iteration {it + 1:2d}: best length = {best_len:.2f}")
+
+print("\nBest route:", best_route + [best_route[0]])
+print("Shortest length:", round(best_len, 2))

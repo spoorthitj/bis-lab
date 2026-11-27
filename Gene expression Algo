@@ -1,0 +1,324 @@
+
+import random
+import numpy as np
+
+# ---------------------------------
+# 1. Sample agricultural dataset
+# ---------------------------------
+
+# Features: N, P, K, temperature, humidity, pH, rainfall
+X = np.array([
+    [90, 42, 43, 25, 80, 6.5, 200],
+    [85, 40, 40, 26, 82, 6.2, 210],
+    [80, 38, 45, 24, 85, 6.0, 220],
+    [20, 60, 20, 20, 50, 6.8, 60],
+    [25, 55, 25, 22, 45, 6.5, 70],
+    [30, 58, 22, 18, 55, 7.0, 80],
+    [70, 45, 40, 30, 60, 6.0, 100],
+    [65, 40, 38, 32, 65, 6.2, 110],
+    [75, 48, 42, 28, 58, 6.4, 120]
+], dtype=float)
+
+y = np.array([
+    "Rice", "Rice", "Rice",
+    "Wheat", "Wheat", "Wheat",
+    "Maize", "Maize", "Maize"
+])
+
+crops = ["Rice", "Wheat", "Maize"]
+
+# Normalize inputs
+X = X / np.array([150, 150, 150, 50, 100, 14, 300])
+
+# ---------------------------------
+# 2. GEP parameters
+# ---------------------------------
+
+FUNCTIONS = ["+", "-", "*", "/"]
+
+TERMINALS = ["N", "P", "K", "T", "H", "PH", "R", "0", "1"]
+
+FEATURES = {
+    name: i for i, name in enumerate(
+        ["N", "P", "K", "T", "H", "PH", "R"]
+    )
+}
+
+HEAD = 5
+TAIL = HEAD + 1
+GENE_LENGTH = HEAD + TAIL
+
+POPULATION_SIZE = 40
+GENERATIONS = 50
+MUTATION_RATE = 0.05
+
+# ---------------------------------
+# 3. Create random chromosome
+# ---------------------------------
+
+def create_chromosome():
+
+    head = [
+        random.choice(FUNCTIONS + TERMINALS)
+        for _ in range(HEAD)
+    ]
+
+    tail = [
+        random.choice(TERMINALS)
+        for _ in range(TAIL)
+    ]
+
+    return head + tail
+
+
+# ---------------------------------
+# 4. Gene expression
+# Convert chromosome into expression
+# ---------------------------------
+
+def decode(chromosome):
+
+    position = [0]
+
+    def build():
+
+        symbol = chromosome[position[0]]
+        position[0] += 1
+
+        if symbol in FUNCTIONS:
+
+            left = build()
+            right = build()
+
+            return (symbol, left, right)
+
+        return symbol
+
+    return build()
+
+
+# ---------------------------------
+# 5. Evaluate expression
+# ---------------------------------
+
+def evaluate(tree, row):
+
+    if isinstance(tree, str):
+
+        if tree in FEATURES:
+            return row[FEATURES[tree]]
+
+        return float(tree)
+
+    op, left, right = tree
+
+    a = evaluate(left, row)
+    b = evaluate(right, row)
+
+    if op == "+":
+        result = a + b
+
+    elif op == "-":
+        result = a - b
+
+    elif op == "*":
+        result = a * b
+
+    else:
+        result = a / b if abs(b) > 0.001 else a
+
+    return max(-10, min(10, result))
+
+
+# ---------------------------------
+# 6. Calculate fitness
+# ---------------------------------
+
+def fitness(chromosome, target):
+
+    try:
+
+        tree = decode(chromosome)
+
+        predictions = [
+            evaluate(tree, row) for row in X
+        ]
+
+        error = np.mean(
+            (np.array(predictions) - target) ** 2
+        )
+
+        return 1 / (1 + error)
+
+    except (RecursionError, IndexError, OverflowError):
+        return 0
+
+
+# ---------------------------------
+# 7. Selection
+# ---------------------------------
+
+def selection(population, target):
+
+    candidates = random.sample(
+        population, 3
+    )
+
+    return max(
+        candidates,
+        key=lambda c: fitness(c, target)
+    )[:]
+
+
+# ---------------------------------
+# 8. Crossover
+# ---------------------------------
+
+def crossover(parent1, parent2):
+
+    child1 = parent1[:]
+    child2 = parent2[:]
+
+    point = random.randint(1, HEAD - 1)
+
+    child1[:point], child2[:point] = (
+        child2[:point], child1[:point]
+    )
+
+    return child1, child2
+
+
+# ---------------------------------
+# 9. Mutation
+# ---------------------------------
+
+def mutation(chromosome):
+
+    chromosome = chromosome[:]
+
+    for i in range(GENE_LENGTH):
+
+        if random.random() < MUTATION_RATE:
+
+            if i < HEAD:
+                chromosome[i] = random.choice(
+                    FUNCTIONS + TERMINALS
+                )
+            else:
+                chromosome[i] = random.choice(
+                    TERMINALS
+                )
+
+    return chromosome
+
+
+# ---------------------------------
+# 10. Evolve expression for each crop
+# ---------------------------------
+
+def train_crop(crop):
+
+    target = np.array([
+        1.0 if label == crop else 0.0
+        for label in y
+    ])
+
+    population = [
+        create_chromosome()
+        for _ in range(POPULATION_SIZE)
+    ]
+
+    for generation in range(GENERATIONS):
+
+        population.sort(
+            key=lambda c: fitness(c, target),
+            reverse=True
+        )
+
+        best = population[0]
+
+        new_population = [best[:]]
+
+        while len(new_population) < POPULATION_SIZE:
+
+            p1 = selection(population, target)
+            p2 = selection(population, target)
+
+            c1, c2 = crossover(p1, p2)
+
+            c1 = mutation(c1)
+            c2 = mutation(c2)
+
+            new_population.extend([c1, c2])
+
+        population = new_population[:POPULATION_SIZE]
+
+    best = max(
+        population,
+        key=lambda c: fitness(c, target)
+    )
+
+    return best
+
+
+# ---------------------------------
+# 11. Train all crop expressions
+# ---------------------------------
+
+models = {}
+
+for crop in crops:
+
+    print("Training for:", crop)
+
+    models[crop] = train_crop(crop)
+
+
+# ---------------------------------
+# 12. Recommend crop
+# ---------------------------------
+
+def recommend_crop():
+
+    print("\nEnter soil and climate values:")
+
+    values = [
+        float(input("Nitrogen: ")),
+        float(input("Phosphorus: ")),
+        float(input("Potassium: ")),
+        float(input("Temperature: ")),
+        float(input("Humidity: ")),
+        float(input("pH: ")),
+        float(input("Rainfall: "))
+    ]
+
+    row = np.array(values) / np.array(
+        [150, 150, 150, 50, 100, 14, 300]
+    )
+
+    scores = {}
+
+    for crop, chromosome in models.items():
+
+        tree = decode(chromosome)
+
+        score = evaluate(tree, row)
+
+        scores[crop] = score
+
+    print("\nCrop Suitability Scores:")
+
+    for crop, score in sorted(
+        scores.items(),
+        key=lambda item: item[1],
+        reverse=True
+    ):
+
+        print(crop, ":", round(score, 4))
+
+    best_crop = max(scores, key=scores.get)
+
+    print("\nRecommended crop:", best_crop)
+
+
+recommend_crop()

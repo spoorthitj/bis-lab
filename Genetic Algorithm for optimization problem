@@ -1,0 +1,64 @@
+import random
+
+# 1. Define the problem
+def fitness(x):
+    return x ** 2          # maximize x^2
+
+# 2. Parameters
+POP_SIZE = 20
+CHROMO_LEN = 5             # 5 bits -> x in [0, 31]
+CROSSOVER_RATE = 0.8
+MUTATION_RATE = 0.02
+GENERATIONS = 50
+
+def decode(chromosome):
+    return int("".join(map(str, chromosome)), 2)
+
+# 3. Initial population
+def create_population():
+    return [[random.randint(0, 1) for _ in range(CHROMO_LEN)]
+            for _ in range(POP_SIZE)]
+
+# 5. Selection (tournament)
+def select(population):
+    contenders = random.sample(population, 3)
+    return max(contenders, key=lambda c: fitness(decode(c)))
+
+# 6. Crossover (single point)
+def crossover(p1, p2):
+    if random.random() < CROSSOVER_RATE:
+        point = random.randint(1, CHROMO_LEN - 1)
+        return p1[:point] + p2[point:], p2[:point] + p1[point:]
+    return p1[:], p2[:]
+
+# 7. Mutation (bit flip)
+def mutate(chromosome):
+    return [1 - bit if random.random() < MUTATION_RATE else bit
+            for bit in chromosome]
+
+# 8. Main loop
+def genetic_algorithm():
+    population = create_population()
+    best = max(population, key=lambda c: fitness(decode(c)))
+
+    for gen in range(GENERATIONS):
+        new_population = []
+        while len(new_population) < POP_SIZE:
+            p1, p2 = select(population), select(population)
+            c1, c2 = crossover(p1, p2)
+            new_population += [mutate(c1), mutate(c2)]
+        population = new_population[:POP_SIZE]
+
+        # 4. Evaluate fitness / track best
+        gen_best = max(population, key=lambda c: fitness(decode(c)))
+        if fitness(decode(gen_best)) > fitness(decode(best)):
+            best = gen_best
+
+        print(f"Gen {gen+1:2d} | Best x = {decode(gen_best):2d} "
+              f"| Fitness = {fitness(decode(gen_best))}")
+
+    # 9. Output best solution
+    x = decode(best)
+    print(f"\nBest solution: x = {x}, f(x) = {fitness(x)}")
+
+genetic_algorithm()

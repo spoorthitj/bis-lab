@@ -1,0 +1,44 @@
+Iter  1 | best fitness = 0.0495 | features used = 14
+Iter  2 | best fitness = 0.0495 | features used = 14
+Iter  3 | best fitness = 0.0443 | features used = 10
+Iter  4 | best fitness = 0.0433 | features used = 16
+Iter  5 | best fitness = 0.0458 | features used = 16
+Iter  6 | best fitness = 0.0444 | features used = 14
+Iter  7 | best fitness = 0.0401 | features used = 15
+Iter  8 | best fitness = 0.0400 | features used = 11
+Iter  9 | best fitness = 0.0349 | features used = 11
+Iter 10 | best fitness = 0.0356 | features used = 12
+Iter 11 | best fitness = 0.0381 | features used = 12
+Iter 12 | best fitness = 0.0343 | features used = 10
+Iter 13 | best fitness = 0.0324 | features used = 11
+Iter 14 | best fitness = 0.0343 | features used = 10
+Iter 15 | best fitness = 0.0356 | features used = 12
+Iter 16 | best fitness = 0.0317 | features used = 10
+Iter 17 | best fitness = 0.0343 | features used = 10
+Iter 18 | best fitness = 0.0317 | features used = 10
+Iter 19 | best fitness = 0.0343 | features used = 10
+Iter 20 | best fitness = 0.0317 | features used = 10
+Iter 21 | best fitness = 0.0336 | features used = 9
+Iter 22 | best fitness = 0.0343 | features used = 10
+Iter 23 | best fitness = 0.0336 | features used = 9
+Iter 24 | best fitness = 0.0336 | features used = 9
+Iter 25 | best fitness = 0.0336 | features used = 9
+Iter 26 | best fitness = 0.0336 | features used = 9
+Iter 27 | best fitness = 0.0336 | features used = 9
+Iter 28 | best fitness = 0.0336 | features used = 9
+Iter 29 | best fitness = 0.0336 | features used = 9
+Iter 30 | best fitness = 0.0336 | features used = 9
+
+Selected 9 of 30 features:
+  - mean area
+  - mean compactness
+  - mean concavity
+  - compactness error
+  - worst radius
+  - worst texture
+  - worst perimeter
+  - worst area
+  - worst symmetry
+
+Test accuracy using ALL 30 features : 0.959
+Test accuracy using 9 selected features : 0.947

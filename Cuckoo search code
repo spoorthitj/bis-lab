@@ -1,0 +1,75 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from math import gamma, sin, pi
+
+
+# ---------------------------------------------------------------
+# 1. Lévy step generator (Mantegna's algorithm)
+#    step = u / |v|^(1/beta),  u ~ N(0, sigma^2),  v ~ N(0, 1)
+# ---------------------------------------------------------------
+def levy_step(beta=1.5, size=1):
+    sigma = (gamma(1 + beta) * sin(pi * beta / 2) /
+             (gamma((1 + beta) / 2) * beta * 2 ** ((beta - 1) / 2))) ** (1 / beta)
+    u = np.random.normal(0, sigma, size)
+    v = np.random.normal(0, 1, size)
+    return u / np.abs(v) ** (1 / beta)
+
+
+# ---------------------------------------------------------------
+# 2. One Lévy update of the duty cycle (MPPT)
+#    D_new = D + alpha * Levy * (D - D_best)
+# ---------------------------------------------------------------
+def update_duty_cycle(D, D_best, alpha=0.05, d_min=0.1, d_max=0.9):
+    step = alpha * levy_step()[0] * (D - D_best)
+    return float(np.clip(D + step, d_min, d_max)), step
+
+
+# ---------------------------------------------------------------
+# 3. Demo: numeric example from the explanation
+# ---------------------------------------------------------------
+def numeric_demo():
+    D, D_best = 0.40, 0.55
+    print(f"Current D = {D}, best D = {D_best}, alpha = 0.05\n")
+    for i in range(8):
+        D_new, step = update_duty_cycle(D, D_best)
+        print(f"Trial {i+1}: step = {step:+.4f}  ->  D_new = {D_new:.4f}")
+
+
+# ---------------------------------------------------------------
+# 4. Plots: Lévy vs Gaussian steps, and a 2D walk comparison
+# ---------------------------------------------------------------
+def make_plots(n=200):
+    np.random.seed(1)
+    levy = levy_step(size=n)
+    gauss = np.random.normal(0, 1, n)
+
+    fig, ax = plt.subplots(1, 3, figsize=(16, 4.5))
+
+    # (a) step sizes
+    ax[0].plot(np.abs(gauss), label="Gaussian", alpha=0.8)
+    ax[0].plot(np.abs(levy), label="Lévy", alpha=0.8)
+    ax[0].set_title("Step sizes: mostly small, rare huge jumps (Lévy)")
+    ax[0].set_xlabel("Step number")
+    ax[0].set_ylabel("|step|")
+    ax[0].legend()
+
+    # (b) 2D Gaussian random walk
+    gx = np.cumsum(np.random.normal(0, 1, n))
+    gy = np.cumsum(np.random.normal(0, 1, n))
+    ax[1].plot(gx, gy, marker=".", lw=0.8)
+    ax[1].set_title("Normal random walk")
+
+    # (c) 2D Lévy flight
+    lx = np.cumsum(levy_step(size=n))
+    ly = np.cumsum(levy_step(size=n))
+    ax[2].plot(lx, ly, marker=".", lw=0.8, color="tab:orange")
+    ax[2].set_title("Lévy flight (clusters + long jumps)")
+
+    plt.tight_layout()
+    plt.savefig("levy_vs_gaussian.png", dpi=150)
+    plt.show()
+
+
+if __name__ == "__main__":
+    numeric_demo()
+    make_plots()
